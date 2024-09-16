@@ -7,7 +7,6 @@ exports.getAllBlogPosts = asyncHandler(async (req, res, next) => {
 });
 
 exports.getBlog = asyncHandler(async (req, res, next) => {
-    const blog = await Blog.findOne(params.req.id).populate("author").exec();
-    console.log(blog);
+    const blog = await Blog.findOne({_id:req.params.blogId}).populate("author").exec();
     res.send({post: blog});
 })
