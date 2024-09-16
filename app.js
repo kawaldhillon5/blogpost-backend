@@ -3,10 +3,20 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-
+const mongoose = require("mongoose");
+const clientRouter = require("./routes/client");
 var indexRouter = require('./routes/index');
-
+const editorRouter = require("./routes/editor");
 var app = express();
+
+mongoose.set("strictQuery", false);
+const mongoDB = "mongodb+srv://dhillonzeus:6357Jv7t3TPHTyor@cluster0.dvd8zsi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
+
+main().catch((err) => console.log(err));
+async function main() {
+  await mongoose.connect(mongoDB);
+}
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -24,7 +34,8 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-
+app.use('/client', clientRouter);
+app.use('/editor', editorRouter);
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
