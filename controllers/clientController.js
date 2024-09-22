@@ -33,6 +33,5 @@ exports.postRequest = asyncHandler(async (req, res, next) => {
         user: "default"
     });
     await request.save();
-
     res.send(request);
 });

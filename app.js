@@ -7,7 +7,17 @@ const mongoose = require("mongoose");
 const clientRouter = require("./routes/client");
 var indexRouter = require('./routes/index');
 const editorRouter = require("./routes/editor");
+const authRouter = require('./routes/auth');
+const session = require("express-session");
+const passport = require("passport");
+const MongoStore = require('connect-mongo');
+const cors = require("cors");
 var app = express();
+
+
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
 
 mongoose.set("strictQuery", false);
 const mongoDB = "mongodb+srv://dhillonzeus:6357Jv7t3TPHTyor@cluster0.dvd8zsi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
@@ -18,9 +28,19 @@ async function main() {
   await mongoose.connect(mongoDB);
 }
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+app.use(session({ 
+  secret: "cats", 
+  resave: false, 
+  saveUninitialized: false,
+  store: MongoStore.create(
+    {mongoUrl:mongoDB}
+    ),
+  cookie: { maxAge: 1000 * 60 * 60 * 24 }, 
+}));
+app.use(cors());
+app.use(passport.initialize());
+app.use(passport.session());
+
 
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "http://127.0.0.1:5173"); // update to match the domain you will make the request from
@@ -36,6 +56,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/client', clientRouter);
 app.use('/editor', editorRouter);
+app.use('/authenticate', authRouter);
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
