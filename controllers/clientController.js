@@ -3,10 +3,12 @@ const Blog = require("../models/blog");
 const RequestBlog = require("../models/requestBlog");
 const { body, validationResult } = require("express-validator");
 
-exports.getAllBlogPosts = asyncHandler(async (req, res, next) => {
-    const posts = await Blog.find().populate("author").exec();
-    res.send({posts: posts});
-});
+exports.getAllBlogPosts = [
+    asyncHandler(async (req, res, next) => {
+        const posts = await Blog.find().populate("author").exec();
+        res.send({posts: posts});
+    }),
+]
 
 exports.getBlog = asyncHandler(async (req, res, next) => {
     const blog = await Blog.findOne({_id:req.params.blogId}).populate("author").exec();
@@ -24,7 +26,6 @@ exports.getRequest = asyncHandler(async (req, res, next) => {
 });
 
 exports.postRequest = asyncHandler(async (req, res, next) => {
-    console.log(req.body);
     const request = new RequestBlog({
         date_created: new Date(),
         title: req.body.title,

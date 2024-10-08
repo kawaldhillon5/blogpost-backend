@@ -3,13 +3,17 @@ const Blog = require("../models/blog");
 const RequestBlog = require("../models/requestBlog");
 const { body, validationResult } = require("express-validator");
 const Author = require("../models/author");
+const User = require('../models/user');
+const blog = require("../models/blog");
+const { model } = require("mongoose");
 
 exports.getMyBlogPosts = asyncHandler(async (req, res, next)=>{
-    const blogs = await Author.findById("66eb9eb9d449d580d5cd0e74").populate("blogs").exec();
+    const user = await User.findById(req.params.userId).populate({path: 'authorDetails',populate:{path:'blogs',model:'Blog'}}).exec();
+    const blogs = user.authorDetails.blogs;
     if(!blogs){
         res.send({blogs: []})
     } else {
-        res.send({blogs: blogs.blogs});
+        res.send({blogs: blogs});
     }
 
 });
@@ -53,12 +57,13 @@ exports.updateBlog = asyncHandler(async (req, res, next) => {
 });
 
 exports.createNewEmptyBlog = asyncHandler(async (req, res, next) => {
-     const author = new Author({
-        last_name: "D",
-        first_name: "K",
-        blogs: []
-    });
-
+    const user = await User.findById(req.params.userId).populate({path:'authorDetails'}).exec();
+    let author = {};
+    if(user.isEditor){
+       author = await Author.findById(user.authorDetails._id.toString()).exec();
+    } else {
+        res.status(400).send({message: "User is not an Author"});
+    }
     const blog = new Blog({
         date_created: new Date(),
         title: "",
@@ -66,7 +71,7 @@ exports.createNewEmptyBlog = asyncHandler(async (req, res, next) => {
         tags: ["#science"],
         author: author
     });
-    author.blogs.push(blog);
+    await author.blogs.push(blog);
     await author.save(); 
     const newBlog = await blog.save();
     res.send({id: newBlog._id});

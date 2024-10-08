@@ -18,6 +18,7 @@ var app = express();
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
+app.use(cors({credentials: true, origin: "http://localhost:5173"}));
 
 mongoose.set("strictQuery", false);
 const mongoDB = "mongodb+srv://dhillonzeus:6357Jv7t3TPHTyor@cluster0.dvd8zsi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
@@ -35,18 +36,13 @@ app.use(session({
   store: MongoStore.create(
     {mongoUrl:mongoDB}
     ),
-  cookie: { maxAge: 1000 * 60 * 60 * 24 }, 
+  cookie: { maxAge: 1000 * 60 * 60 * 24},
 }));
-app.use(cors());
+
 app.use(passport.initialize());
 app.use(passport.session());
 
 
-app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "http://127.0.0.1:5173"); // update to match the domain you will make the request from
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
-});
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

@@ -4,7 +4,7 @@ const passport = require("passport");
 const LocalStrategy = require('passport-local');
 const genPassword = require("../public/javascripts/passwordUtils").genPassword;
 const validatePassword = require("../public/javascripts/passwordUtils").validatePassword;
-passport.use(
+passport.use('local',
     new LocalStrategy(async (username, password, done) => {
       try {
         const user =  await User.findOne({userName: username}).collation({ locale: "en", strength: 2 }).exec();
@@ -30,9 +30,8 @@ passport.use(
   
   passport.deserializeUser(async (_id, done) => {
     try {
-      const user = await User.findById(_id).collation({ locale: "en", strength: 2 }).exec();
-  
-      done(null, user);
+        const user = await User.findById(_id).collation({ locale: "en", strength: 2 }).exec();
+        done(null, user);
     } catch(err) {
       done(err);
     };
@@ -41,7 +40,7 @@ passport.use(
 exports.signUp = asyncHandler( async(req, res, next)=>{
 
     const editorReq = (req.body.data.editorReq == "on") ? true : false;
-    const {salt, hash} = genPassword(req.body.data.password);
+    const {salt, hash} = genPassword(req.body.data.password1);
     const userNew = new User({
         userName: req.body.data.username,
         userEmail: req.body.data.email,
@@ -75,6 +74,27 @@ exports.signUp = asyncHandler( async(req, res, next)=>{
         } if(!user) {
             return res.status(401).end('Wrong username or passowrd');
         }
-        res.status(200).send({message: "User authenticated" , username: user.userName});
+        req.logIn(user, function(err) {
+            if (err) { return next(err); }
+            return res.status(200).send({message: 'user Loged in' , userId: user._id}); //That, or hand them a session id or a JWT Token
+          });
     })(req, res, next);
  });
+
+ exports.User = asyncHandler( async (req, res, next) => {
+  if(req.isAuthenticated()){
+    res.send({user: req.user._id, username: req.user.userName});
+  } else {
+    res.send({user: null})
+  }
+});
+
+exports.LogOut = asyncHandler( async (req, res, next) => {
+  req.logout(function(err) {
+    if (err) {
+      console.log(err); 
+      return next(err); 
+    }
+    res.status(200).send({message:"User Loged out"});
+  })
+});
