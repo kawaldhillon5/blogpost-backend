@@ -6,6 +6,7 @@ const EditorReqSchema = new Schema({
     lastName: {type:String},
     email: {type: String},
     dateCreated: {type: Date},
+    user: {type: Schema.Types.ObjectId, ref:"User"}
 });
 
 module.exports = mongoose.model("EditorReq", EditorReqSchema);

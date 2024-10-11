@@ -46,7 +46,7 @@ exports.signUp = asyncHandler( async(req, res, next)=>{
     const authorDetails = new Author({
       first_name: req.body.data.firstname,
       last_name: req.body.data.lastname,
-      blogs: []
+      blogs: [],
     })
     const {salt, hash} = genPassword(req.body.data.password1);
     const userNew = new User({
@@ -79,7 +79,8 @@ exports.signUp = asyncHandler( async(req, res, next)=>{
                 firstName: req.body.data.firstname,
                 lastName: req.body.data.lastname,
                 email: req.body.data.email,
-                dateCreated: new Date()
+                dateCreated: new Date(),
+                user: userNew,
               })
               await eReq.save();
             }

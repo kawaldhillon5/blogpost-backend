@@ -6,6 +6,9 @@ const Author = require("../models/author");
 const User = require('../models/user');
 const blog = require("../models/blog");
 const { model } = require("mongoose");
+const EditorRequest = require("../models/editorRequest");
+const Log = require("../models/log");
+const cookieSession = require("cookie-session");
 
 exports.getMyBlogPosts = asyncHandler(async (req, res, next)=>{
     const user = await User.findById(req.params.userId).populate({path: 'authorDetails',populate:{path:'blogs',model:'Blog'}}).exec();
@@ -75,4 +78,29 @@ exports.createNewEmptyBlog = asyncHandler(async (req, res, next) => {
     await author.save(); 
     const newBlog = await blog.save();
     res.send({id: newBlog._id});
+});
+
+exports.getEditorReqs = asyncHandler(async (req, res, next) => {
+    const reqs = await EditorRequest.find().exec();
+    if(reqs.length === 0 || reqs === undefined) {
+        res.status(200).send({reqs: []});
+    } else {
+        res.status(200).send({reqs: reqs});
+    }
+});
+
+exports.postEditorReqChoice = asyncHandler(async (req, res, next) => {
+    const request = await EditorRequest.findById(req.params.id).exec();
+
+    const log = new Log({
+        category: "editor-Req",
+        entry: `${req.user._id.toString()} ${req.body.data.choice ? "accepted": "rejected"} ${req.params.id}'s request to become editor`,
+        dateCreated: new Date(),
+    });
+    if(req.body.data.choice){
+        await User.updateOne({_id: request.user.toString()}, {isEditor: true});
+    }
+    await log.save();
+    await EditorRequest.deleteOne({_id: req.params.id});
+    res.status(200).send("ok");
 })
