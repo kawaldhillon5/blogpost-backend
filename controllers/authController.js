@@ -6,6 +6,7 @@ const genPassword = require("../public/javascripts/passwordUtils").genPassword;
 const validatePassword = require("../public/javascripts/passwordUtils").validatePassword;
 const Author = require("../models/author");
 const editorRequest = require("../models/editorRequest");
+const user = require("../models/user");
 
 passport.use('local',
     new LocalStrategy(async (username, password, done) => {
@@ -105,7 +106,7 @@ exports.signUp = asyncHandler( async(req, res, next)=>{
 
  exports.User = asyncHandler( async (req, res, next) => {
   if(req.isAuthenticated()){
-    res.send({user: req.user._id, username: req.user.userName});
+    res.send({user: req.user._id, username: req.user.userName, isAdmin: req.user.isAdmin});
   } else {
     res.send({user: null})
   }

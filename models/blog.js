@@ -6,7 +6,8 @@ const BlogSchema = new Schema({
     author: {type: Schema.Types.ObjectId, ref: "Author"},
     tags: [{type: String}],
     title: {type: String},
-    body: {type: String}
+    body: {type: String},
+    isPublished: {type:Boolean}
 })
 
 BlogSchema.virtual("url").get(function(){

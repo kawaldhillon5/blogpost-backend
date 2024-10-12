@@ -1,6 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const Blog = require("../models/blog");
-const RequestBlog = require("../models/requestBlog");
+const RequestBlog = require("../models/blogRequest");
 const { body, validationResult } = require("express-validator");
 
 exports.getAllBlogPosts = [
