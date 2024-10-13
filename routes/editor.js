@@ -11,5 +11,6 @@ router.get('/publishBlogRequests', editorController.getPublishBlogRequests);
 router.post('/editorReqChoice/:id',editorController.postEditorReqChoice);
 router.post('/updateBlog/:blogId', editorController.saveBlog);
 router.post('/finishBlog/:blogId', editorController.finishEditingBlog);
+router.post('/publishReqChoice/:reqId',editorController.postPublishBlogReq)
 
-  module.exports = router;
+module.exports = router;

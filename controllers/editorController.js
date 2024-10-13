@@ -1,15 +1,15 @@
 const asyncHandler = require("express-async-handler");
 const Blog = require("../models/blog");
 const RequestBlog = require("../models/blogRequest");
-const { body, validationResult } = require("express-validator");
+const { body, validationResult, buildCheckFunction } = require("express-validator");
 const Author = require("../models/author");
 const User = require('../models/user');
 const blog = require("../models/blog");
 const { model } = require("mongoose");
 const EditorRequest = require("../models/editorRequest");
 const Log = require("../models/log");
-const cookieSession = require("cookie-session");
-const publishBlogRequest = require("../models/publishBlogRequest");
+const PublishBlogRequest = require("../models/publishBlogRequest");
+const editorRequest = require("../models/editorRequest");
 
 exports.getMyBlogPosts = asyncHandler(async (req, res, next)=>{
     if(req.user) {
@@ -48,9 +48,9 @@ exports.saveBlog = asyncHandler(async (req, res, next) => {
 
 exports.finishEditingBlog = asyncHandler(async (req, res, next) => {
     const updatedBlog = await updateBlog(req.params.blogId, req.body);
-    const request = await publishBlogRequest.find({user: req.user._id.toString()}).exec();
+    const request = await PublishBlogRequest.find({user: req.user._id.toString()}).exec();
     if(!request.length){
-        const publishReq = new publishBlogRequest({
+        const publishReq = new PublishBlogRequest({
             blog: updatedBlog._id,
             user: req.user._id,
             title: updatedBlog.title
@@ -65,7 +65,7 @@ exports.createNewEmptyBlog = asyncHandler(async (req, res, next) => {
     const user = req.user;
     
     if(!user.isEditor){
-        res.status(400).send({message: "User is not an Author"});
+       return  res.status(404).end("User is not an Editor");
     }
     const author = await Author.findById(user.authorDetails._id.toString()).exec();
     const blog = new Blog({
@@ -79,7 +79,7 @@ exports.createNewEmptyBlog = asyncHandler(async (req, res, next) => {
     author.blogs.push(blog);
     await author.save(); 
     const newBlog = await blog.save();
-    res.send({id: newBlog._id});
+    return res.send({id: newBlog._id});
 });
 
 exports.getEditorReqs = asyncHandler(async (req, res, next) => {
@@ -96,7 +96,7 @@ exports.postEditorReqChoice = asyncHandler(async (req, res, next) => {
 
     const log = new Log({
         category: "editor-Req",
-        entry: `${req.user._id.toString()} ${req.body.data.choice ? "accepted": "rejected"} ${req.params.id}'s request to become editor`,
+        entry: `${req.user._id.toString()} ${req.body.data.choice ? "accepted": "rejected"} ${request.user._id.toString()}'s request`,
         dateCreated: new Date(),
     });
     if(req.body.data.choice){
@@ -108,8 +108,23 @@ exports.postEditorReqChoice = asyncHandler(async (req, res, next) => {
 });
 
 exports.getPublishBlogRequests = asyncHandler(async (req, res, next)=>{
-    const reqs = await publishBlogRequest.find().exec();
+    const reqs = await PublishBlogRequest.find().populate("user").exec();
     res.send({data: reqs });
+});
+
+exports.postPublishBlogReq = asyncHandler(async (req, res, next)=>{
+    const request = await PublishBlogRequest.findById(req.params.reqId).populate("user").exec();
+    const log = new Log({
+        category:  "publish_req",
+        entry: `${req.user._id.toString()} ${req.body.data.choice ? "accepted": "rejected"} ${request.user._id.toString()}'s request`,
+        dateCreated: new Date()
+    });
+    if(req.body.data.choice) {
+        await Blog.updateOne({_id: request.blog.toString()},{isPublished: true});
+    }
+    await log.save();
+    await editorRequest.deleteOne({_id: req.params.reqId});
+    res.status(200).send("ok");
 });
 
 async function updateBlog(blogId, body) {
@@ -133,3 +148,4 @@ async function updateBlog(blogId, body) {
     const updatedBlog = await Blog.findByIdAndUpdate(blogId, newBlog, {});
     return updatedBlog;
 }
+
