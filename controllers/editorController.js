@@ -9,7 +9,7 @@ const { model } = require("mongoose");
 const EditorRequest = require("../models/editorRequest");
 const Log = require("../models/log");
 const PublishBlogRequest = require("../models/publishBlogRequest");
-const editorRequest = require("../models/editorRequest");
+const publishBlogRequest = require("../models/publishBlogRequest");
 
 exports.getMyBlogPosts = asyncHandler(async (req, res, next)=>{
     if(req.user) {
@@ -47,9 +47,10 @@ exports.saveBlog = asyncHandler(async (req, res, next) => {
 });
 
 exports.finishEditingBlog = asyncHandler(async (req, res, next) => {
-    const updatedBlog = await updateBlog(req.params.blogId, req.body);
-    const request = await PublishBlogRequest.find({user: req.user._id.toString()}).exec();
-    if(!request.length){
+    const updates = {...req.body, isPublished: false}
+    const updatedBlog = await updateBlog(req.params.blogId, updates);
+    const request = await PublishBlogRequest.findOne({blog: req.params.blogId}).exec();
+    if(!request){
         const publishReq = new PublishBlogRequest({
             blog: updatedBlog._id,
             user: req.user._id,
@@ -116,14 +117,14 @@ exports.postPublishBlogReq = asyncHandler(async (req, res, next)=>{
     const request = await PublishBlogRequest.findById(req.params.reqId).populate("user").exec();
     const log = new Log({
         category:  "publish_req",
-        entry: `${req.user._id.toString()} ${req.body.data.choice ? "accepted": "rejected"} ${request.user._id.toString()}'s request`,
+        entry: `${req.user._id.toString()} ${req.body.data.choice ? "accepted": "rejected"} ${request.user._id.toString()}'s request for publishing blog:${request.title}`,
         dateCreated: new Date()
     });
     if(req.body.data.choice) {
         await Blog.updateOne({_id: request.blog.toString()},{isPublished: true});
     }
     await log.save();
-    await editorRequest.deleteOne({_id: req.params.reqId});
+    console.log(await PublishBlogRequest.deleteOne({_id: req.params.reqId}));
     res.status(200).send("ok");
 });
 
@@ -143,7 +144,8 @@ async function updateBlog(blogId, body) {
         body: body.body,
         date_created: blog.date_created,
         author: blog.author,
-        tags: blog.tags
+        tags: blog.tags,
+        isPublished: body.isPublished,
     });
     const updatedBlog = await Blog.findByIdAndUpdate(blogId, newBlog, {});
     return updatedBlog;

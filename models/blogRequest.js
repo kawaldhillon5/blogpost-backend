@@ -6,7 +6,7 @@ const RequestBlogSchema = new Schema({
     title: {type: String, required: true},
     desc: {type: String},
     votes: {type: Number},
-    user: {type: String},
+    user: {type: Schema.Types.ObjectId, ref: "User"},
 });
 
 RequestBlogSchema.virtual("url").get(function(){
