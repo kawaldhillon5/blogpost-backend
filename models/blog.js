@@ -7,7 +7,8 @@ const BlogSchema = new Schema({
     tags: [{type: String}],
     title: {type: String},
     body: {type: String},
-    isPublished: {type:Boolean}
+    isPublished: {type:Boolean},
+    publishReqStatus: {type: Number},
 })
 
 BlogSchema.virtual("url").get(function(){

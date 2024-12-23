@@ -4,12 +4,10 @@ const RequestBlog = require("../models/blogRequest");
 const { body, validationResult, buildCheckFunction } = require("express-validator");
 const Author = require("../models/author");
 const User = require('../models/user');
-const blog = require("../models/blog");
 const { model } = require("mongoose");
 const EditorRequest = require("../models/editorRequest");
 const Log = require("../models/log");
 const PublishBlogRequest = require("../models/publishBlogRequest");
-const publishBlogRequest = require("../models/publishBlogRequest");
 
 exports.getMyBlogPosts = asyncHandler(async (req, res, next)=>{
     if(req.user) {
@@ -47,7 +45,7 @@ exports.saveBlog = asyncHandler(async (req, res, next) => {
 });
 
 exports.finishEditingBlog = asyncHandler(async (req, res, next) => {
-    const updates = {...req.body, isPublished: false}
+    const updates = {...req.body, isPublished: false, publishReqStatus:1}
     const updatedBlog = await updateBlog(req.params.blogId, updates);
     const request = await PublishBlogRequest.findOne({blog: req.params.blogId}).exec();
     if(!request){
@@ -76,6 +74,7 @@ exports.createNewEmptyBlog = asyncHandler(async (req, res, next) => {
         tags: ["#science"],
         author: author,
         isPublished: false,
+        publishReqStatus: 0,
     });
     author.blogs.push(blog);
     await author.save(); 
@@ -121,15 +120,17 @@ exports.postPublishBlogReq = asyncHandler(async (req, res, next)=>{
         dateCreated: new Date()
     });
     if(req.body.data.choice) {
-        await Blog.updateOne({_id: request.blog.toString()},{isPublished: true});
+        await Blog.updateOne({_id: request.blog.toString()},{isPublished: true, publishReqStatus:2});
+    }else {
+        await Blog.updateOne({_id: request.blog.toString()},{publishReqStatus:3});
     }
     await log.save();
-    console.log(await PublishBlogRequest.deleteOne({_id: req.params.reqId}));
+    await PublishBlogRequest.deleteOne({_id: req.params.reqId});
     res.status(200).send("ok");
 });
 
 async function updateBlog(blogId, body) {
-
+    console.log(body.publishReqStatus);
     const blog = await Blog.findOne({_id:blogId}).exec();
     if (blog === null) {
         // No results.
@@ -146,8 +147,23 @@ async function updateBlog(blogId, body) {
         author: blog.author,
         tags: blog.tags,
         isPublished: body.isPublished,
+        publishReqStatus: body.publishReqStatus,
     });
-    const updatedBlog = await Blog.findByIdAndUpdate(blogId, newBlog, {});
+    const updatedBlog = await Blog.findByIdAndUpdate(blogId, newBlog);
     return updatedBlog;
 }
 
+exports.postDeleteBlogReq = asyncHandler(async (req, res, next)=>{
+    try {
+        await PublishBlogRequest.deleteOne({blog: req.params.blogId}).exec();
+        const resp = await Blog.deleteOne({_id: req.params.blogId}).exec();
+        if (resp.deletedCount == 1){
+            return res.status(200).end("Blog Deleted");
+        } else {
+            return res.status(404).end("Could Not Delete Blog");
+        }
+    } catch(err){
+        console.log(err);
+        return res.status(500).end("Internal Server Error");
+    }
+});

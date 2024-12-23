@@ -12,5 +12,6 @@ router.post('/editorReqChoice/:id',editorController.postEditorReqChoice);
 router.post('/updateBlog/:blogId', editorController.saveBlog);
 router.post('/finishBlog/:blogId', editorController.finishEditingBlog);
 router.post('/publishReqChoice/:reqId',editorController.postPublishBlogReq)
+router.post('/deleteBlog/:blogId', editorController.postDeleteBlogReq);
 
 module.exports = router;

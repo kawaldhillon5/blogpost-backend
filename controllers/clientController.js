@@ -5,7 +5,7 @@ const { body, validationResult } = require("express-validator");
 
 exports.getAllBlogPosts = [
     asyncHandler(async (req, res, next) => {
-        const posts = await Blog.find().populate("author").exec();
+        const posts = await Blog.find({isPublished: true}).populate("author").exec();
         res.send({posts: posts});
     }),
 ]
@@ -16,7 +16,7 @@ exports.getBlog = asyncHandler(async (req, res, next) => {
 });
 
 exports.getAllRequests = asyncHandler(async (req, res, next)=>{
-    const requests = await RequestBlog.find().exec();
+    const requests = await RequestBlog.find().populate("user").exec();
     res.send({requests: requests});
 });
 
@@ -31,7 +31,7 @@ exports.postRequest = asyncHandler(async (req, res, next) => {
         title: req.body.title,
         desc: req.body.desc,
         votes: 1,
-        user: "default"
+        user: req.user._id
     });
     await request.save();
     res.send(request);
