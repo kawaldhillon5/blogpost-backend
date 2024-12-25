@@ -40,7 +40,9 @@ exports.getRequest = asyncHandler(async (req, res, next) => {
 });
 
 exports.saveBlog = asyncHandler(async (req, res, next) => {
-    const updatedBlog = await updateBlog(req.params.blogId, req.body);
+    const updates = {...req.body,isPublished: false, publishReqStatus:0}
+    const updatedBlog = await updateBlog(req.params.blogId, updates);
+    await PublishBlogRequest.findOneAndDelete({blog: req.params.blogId}).exec();
     res.send({id: updatedBlog._id});
 });
 
@@ -71,10 +73,12 @@ exports.createNewEmptyBlog = asyncHandler(async (req, res, next) => {
         date_created: new Date(),
         title: "",
         body: "",
-        tags: ["#science"],
+        tags: [],
         author: author,
         isPublished: false,
         publishReqStatus: 0,
+        votes: 0,
+        comments: [],
     });
     author.blogs.push(blog);
     await author.save(); 
@@ -130,7 +134,6 @@ exports.postPublishBlogReq = asyncHandler(async (req, res, next)=>{
 });
 
 async function updateBlog(blogId, body) {
-    console.log(body.publishReqStatus);
     const blog = await Blog.findOne({_id:blogId}).exec();
     if (blog === null) {
         // No results.
@@ -145,7 +148,7 @@ async function updateBlog(blogId, body) {
         body: body.body,
         date_created: blog.date_created,
         author: blog.author,
-        tags: blog.tags,
+        tags: body.tags,
         isPublished: body.isPublished,
         publishReqStatus: body.publishReqStatus,
     });

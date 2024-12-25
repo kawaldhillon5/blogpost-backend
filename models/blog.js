@@ -9,6 +9,8 @@ const BlogSchema = new Schema({
     body: {type: String},
     isPublished: {type:Boolean},
     publishReqStatus: {type: Number},
+    votes: {type: Number},
+    comments: [{type: Schema.Types.ObjectId, ref: "Comment" }]
 })
 
 BlogSchema.virtual("url").get(function(){

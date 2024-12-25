@@ -10,7 +10,9 @@ const UserSchema = new Schema({
     authorDetails: {type: Schema.Types.ObjectId, ref: "Author" },
     salt: {type: String, required: true},
     hash: {type: String, required: true},
-    dateCreated: {type: Date}
+    dateCreated: {type: Date},
+    votedBlogs: [{type: Schema.Types.ObjectId, ref: "Blog"}],
+    allComments: [{type: Schema.Types.ObjectId, ref: "Comment"}]
 });
 
 module.exports = mongoose.model("User", UserSchema);
