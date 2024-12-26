@@ -3,15 +3,17 @@ const Schema = mongoose.Schema;
 
 const BlogSchema = new Schema({
     date_created: {type: Date},
-    author: {type: Schema.Types.ObjectId, ref: "Author"},
+    author: {type: Schema.Types.ObjectId, ref: "Author", index:true},
     tags: [{type: String}],
     title: {type: String},
     body: {type: String},
-    isPublished: {type:Boolean},
-    publishReqStatus: {type: Number},
+    isPublished: {type:Boolean, index: true},
+    publishReqStatus: {type: Number, index: true},
     votes: {type: Number},
     comments: [{type: Schema.Types.ObjectId, ref: "Comment" }]
-})
+});
+
+BlogSchema.index({ title: "text", tags: "text" });
 
 BlogSchema.virtual("url").get(function(){
     return `/blog/${this._id}`;
