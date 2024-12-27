@@ -5,6 +5,7 @@ const RequestBlog = require("../models/blogRequest");
 const { body, validationResult } = require("express-validator");
 const User = require("../models/user");
 const Author = require("../models/author");
+const BlogRequest = require("../models/blogRequest");
 
 exports.getAllBlogPosts = [
     asyncHandler(async (req, res, next) => {
@@ -65,7 +66,7 @@ exports.postRequest = asyncHandler(async (req, res, next) => {
         date_created: new Date(),
         title: req.body.title,
         desc: req.body.desc,
-        votes: 1,
+        votes: 0,
         user: req.user._id
     });
     await request.save();
@@ -75,11 +76,16 @@ exports.postRequest = asyncHandler(async (req, res, next) => {
 exports.getIsVoted = asyncHandler(async (req,res, next) =>{
     
     if(req.user){
-        const votedBlog = await User.findOne({_id: req.user._id, votedBlogs: {$in: [req.params.blogId]}}).exec();
-        if(votedBlog){
-            return res.status(200).end();
+        let resp = {}
+        if(req.params.type == 'blog') {
+            resp = await User.findOne({_id: req.user._id, votedBlogs: {$in: [req.params.Id]}}).exec();
         } else {
-            return res.status(404).end();
+            resp = await User.findOne({_id: req.user._id, votedReqs: {$in: [req.params.Id]}}).exec();
+        }
+        if(resp){
+            return res.status(200).send(true);
+        } else {
+            return res.status(200).send(false);
         }
     } else {
         return res.status(404).end();
@@ -87,30 +93,74 @@ exports.getIsVoted = asyncHandler(async (req,res, next) =>{
 
 });
 
-exports.postVote = asyncHandler(async (req, res, next)=>{
-    let didUserAlreadyVoted = false;
-    if(req.user.votedBlogs.length){
-        req.user.votedBlogs.forEach(blog => {
-            if(blog._id.toString() === req.params.blogId){
-                didUserAlreadyVoted = true;
-            }
-        });
+exports.getVotes = asyncHandler(async(req, res, next)=>{
+    let votes = 0;
+    if(req.params.type == 'blog'){
+        votes = await Blog.findById(req.params.id,'votes').exec();
+    } else {
+        votes = await RequestBlog.findById(req.params.Id,'votes').exec();
     }
-    
-    if(!didUserAlreadyVoted){
-        await User.updateOne({_id: req.user._id},{$push :{votedBlogs: req.params.blogId}}).exec();
-        const updatedBlog = await Blog.updateOne({_id: req.params.blogId},{$inc: {votes: 1}});
-        if(updatedBlog){
-            return res.status(200).end();
-        } return res.status(404).end(); 
-    } else{
-        await User.updateOne({_id: req.user._id},{$pull :{votedBlogs: req.params.blogId}}).exec();
-        const updatedBlog = await Blog.updateOne({_id: req.params.blogId},{$inc: {votes: -1}});
-        if(updatedBlog){
-            return res.status(200).end();
-        } return res.status(404).end(); 
-    } 
-   
+    if(votes){
+        res.status(200).send(votes);
+    } else {
+    res.status(404);
+    }
+});
+
+exports.postVote = asyncHandler(async (req, res, next)=>{
+    try {
+        let didUserAlreadyVoted = false;
+        if(req.params.type == 'blog'){    
+            if(req.user.votedBlogs.length){
+                req.user.votedBlogs.forEach(blog => {
+                    if(blog._id.toString() === req.params.Id){
+                        didUserAlreadyVoted = true;
+                    }
+                });
+            }
+        } else {
+            if(req.user.votedReqs.length){
+                req.user.votedReqs.forEach(request => {
+                    if(request._id.toString() === req.params.Id){
+                        didUserAlreadyVoted = true;
+                    }
+                });
+            }
+        }
+        if(req.params.type == 'blog'){
+            if(!didUserAlreadyVoted){
+                await User.updateOne({_id: req.user._id},{$push :{votedBlogs: req.params.Id}}).exec();
+                const updatedBlog = await Blog.updateOne({_id: req.params.Id},{$inc: {votes: 1}});
+                if(updatedBlog){
+                    return res.status(200).end();
+                } return res.status(404).end(); 
+            } else{
+                await User.updateOne({_id: req.user._id},{$pull :{votedBlogs: req.params.Id}}).exec();
+                const updatedBlog = await Blog.updateOne({_id: req.params.Id},{$inc: {votes: -1}});
+                if(updatedBlog){
+                    return res.status(200).end();
+                } return res.status(404).end(); 
+            } 
+        } else {
+            if(!didUserAlreadyVoted){
+                await User.updateOne({_id: req.user._id},{$push :{votedReqs: req.params.Id}}).exec();
+                const updatedReq = await BlogRequest.updateOne({_id: req.params.Id},{$inc: {votes: 1}});
+                if(updatedReq){
+                    return res.status(200).end();
+                } return res.status(404).end(); 
+            } else{
+                await User.updateOne({_id: req.user._id},{$pull :{votedReqs: req.params.Id}}).exec();
+                const updatedReq = await BlogRequest.updateOne({_id: req.params.Id},{$inc: {votes: -1}});
+                if(updatedReq){
+                    return res.status(200).end();
+                } return res.status(404).end(); 
+            } 
+        }
+    } catch(err) {
+        console.log(err);
+        next(err);
+    }
+    return ;
 });
 
 exports.getComments = asyncHandler(async(req, res, next)=>{

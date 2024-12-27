@@ -7,7 +7,8 @@ router.get('/blog/:blogId', client_controller.getBlog);
 
 router.get('/allBlogRequests', client_controller.getAllRequests);
 router.get('/requestBlog/:reqId', client_controller.getRequest);
-router.get('/isVoted/:blogId',client_controller.getIsVoted);
+router.get('/isVoted/:type/:Id',client_controller.getIsVoted);
+router.get('/votes/:type/:Id', client_controller.getVotes);
 router.get('/blog/comments/:blogId', client_controller.getComments);
 router.get("/blogs", client_controller.blogsSerach);
 
@@ -16,6 +17,6 @@ router.get('/blogs/newBlogs', client_controller.getNewBlogs);
 router.get('/blogs/popularBlogs', client_controller.getPopularBlogs);
 
 router.post('/newBlogRequest', client_controller.postRequest);
-router.post('/vote/:blogId',client_controller.postVote);
+router.post('/vote/:type/:Id',client_controller.postVote);
 router.post('/blog/postComment/:blogId', client_controller.postComment);
 module.exports = router;

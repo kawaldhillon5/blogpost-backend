@@ -12,6 +12,7 @@ const UserSchema = new Schema({
     hash: {type: String, required: true},
     dateCreated: {type: Date},
     votedBlogs: [{type: Schema.Types.ObjectId, ref: "Blog"}],
+    votedReqs: [{type: Schema.Types.ObjectId, ref: "BlogRequest"}],
     allComments: [{type: Schema.Types.ObjectId, ref: "Comment"}]
 });
 
