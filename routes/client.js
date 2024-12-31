@@ -11,12 +11,20 @@ router.get('/isVoted/:type/:Id',client_controller.getIsVoted);
 router.get('/votes/:type/:Id', client_controller.getVotes);
 router.get('/blog/comments/:blogId', client_controller.getComments);
 router.get("/blogs", client_controller.blogsSerach);
+router.get('/featuredBlog', client_controller.getFeaturedBlog);
+router.get('/news', client_controller.getNews);
+router.get('/notifications', client_controller.getNotifications);
 
 router.get('/authors/popularAuthors', client_controller.getAuthors);
 router.get('/blogs/newBlogs', client_controller.getNewBlogs);
 router.get('/blogs/popularBlogs', client_controller.getPopularBlogs);
+router.get('/EditorReqStatus', client_controller.getEditorReqStatus);
 
 router.post('/newBlogRequest', client_controller.postRequest);
 router.post('/vote/:type/:Id',client_controller.postVote);
 router.post('/blog/postComment/:blogId', client_controller.postComment);
+router.post('/postEditorReq', client_controller.postEditorReq);
+
+router.delete('/delete/notification/:id', client_controller.dismissNoti);
+
 module.exports = router;

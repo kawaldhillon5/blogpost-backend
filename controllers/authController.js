@@ -6,7 +6,7 @@ const genPassword = require("../public/javascripts/passwordUtils").genPassword;
 const validatePassword = require("../public/javascripts/passwordUtils").validatePassword;
 const Author = require("../models/author");
 const editorRequest = require("../models/editorRequest");
-const user = require("../models/user");
+const notification = require("../models/notification");
 
 passport.use('local',
     new LocalStrategy(async (username, password, done) => {
@@ -44,6 +44,17 @@ passport.use('local',
 exports.signUp = asyncHandler( async(req, res, next)=>{
 
     const editorReq = (req.body.data.editorReq === "on") ? true : false;
+    let notifications = [];
+    if(editorReq){
+      const newNoti = new notification({text:"Your Request to Become an Editor has been Recieved",
+                                        dateCreated: new Date(),});
+      notifications.push(newNoti);
+      try{
+        await newNoti.save();
+      } catch(err){
+        console.log(err);
+      }
+    }
     const authorDetails = new Author({
       first_name: req.body.data.firstname,
       last_name: req.body.data.lastname,
@@ -58,7 +69,8 @@ exports.signUp = asyncHandler( async(req, res, next)=>{
         dateCreated: req.body.data.dateCreated,
         authorDetails: authorDetails,
         isAdmin: false,
-        isEditor: false
+        isEditor: false,
+        notifications: notifications,
     });
         try {
             const userNameExists = await User.findOne({userName: req.body.data.username}).collation({ locale: "en", strength: 2 }).exec();
@@ -70,22 +82,24 @@ exports.signUp = asyncHandler( async(req, res, next)=>{
                 throw new Error("Email Alreaady exists");
             }
         } catch(err) {
-            return res.status(404).end( err.message);
+            return res.status(404).end(err.message);
         }
         try{
             await authorDetails.save();
             await userNew.save();
             if(editorReq){
               const eReq = new editorRequest({
-                firstName: req.body.data.firstname,
-                lastName: req.body.data.lastname,
-                email: req.body.data.email,
+                requestStatus: 0,
+                first_name: req.body.data.firstname,
+                last_name: req.body.data.lastname,
                 dateCreated: new Date(),
                 user: userNew,
               })
               await eReq.save();
             }
         } catch(err){
+          console.log(err);
+          next(err);
         }
         return res.status(200).end( "ok");
 })
@@ -106,7 +120,7 @@ exports.signUp = asyncHandler( async(req, res, next)=>{
 
  exports.User = asyncHandler( async (req, res, next) => {
   if(req.isAuthenticated()){
-    res.send({user: req.user._id, username: req.user.userName, isAdmin: req.user.isAdmin, status: 200});
+    res.send({user: req.user._id, username: req.user.userName, isAdmin: req.user.isAdmin, status: 200, isEditor: req.user.isEditor});
   } else {
     res.send({user:null ,status:401});
   }

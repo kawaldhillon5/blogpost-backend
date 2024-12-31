@@ -159,6 +159,7 @@ async function updateBlog(blogId, body) {
 exports.postDeleteBlogReq = asyncHandler(async (req, res, next)=>{
     try {
         await PublishBlogRequest.deleteOne({blog: req.params.blogId}).exec();
+        await Author.findByIdAndUpdate({_id: req.user.authorDetails.toString()},{$pull:{"blogs": req.params.blogId}});
         const resp = await Blog.deleteOne({_id: req.params.blogId}).exec();
         if (resp.deletedCount == 1){
             return res.status(200).end("Blog Deleted");

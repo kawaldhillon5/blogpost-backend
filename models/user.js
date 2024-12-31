@@ -13,7 +13,8 @@ const UserSchema = new Schema({
     dateCreated: {type: Date},
     votedBlogs: [{type: Schema.Types.ObjectId, ref: "Blog"}],
     votedReqs: [{type: Schema.Types.ObjectId, ref: "BlogRequest"}],
-    allComments: [{type: Schema.Types.ObjectId, ref: "Comment"}]
+    allComments: [{type: Schema.Types.ObjectId, ref: "Comment"}],
+    notifications: [{type: Schema.Types.ObjectId, ref: "Notification"}]
 });
 
 module.exports = mongoose.model("User", UserSchema);
