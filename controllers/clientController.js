@@ -16,15 +16,67 @@ exports.getAllBlogPosts = [
         res.send({posts: posts});
     }),
 ]
+
+exports.getBlogsByAuthor = asyncHandler(async(req, res, next)=>{
+    const resp = await Blog.find({author: req.params.authorId, isPublished: true},'date_created title author votes').populate("author", "first_name last_name").exec();
+    if(resp){
+        res.status(200).send(resp);
+    } else {
+        res.status(404).send("No Blogs Found");
+    }
+});
+
+
 exports.getAuthors = asyncHandler(async(req, res, next)=>{
     
-    const authors = await Author.find({},"first_name last_name").limit(5).exec();
-    if(authors.length){
-        res.json(authors);
-    } else {
-        res.status(404).send("Could not load Bloggers");
-    }
-
+    
+    try {
+        const topAuthors = await Blog.aggregate([
+        {
+        $match:
+            {
+            isPublished: true,
+            },
+        },
+        {
+        $group:
+            {
+            _id: "$author",
+            totalVotes: {
+                $sum: "$votes",
+            },
+            },
+        },
+        {
+        $sort:
+            
+            {
+            totalVotes: -1,
+            },
+        },
+        {
+        $limit:
+            5,
+        },
+        {
+        $lookup:
+            {
+            from: "authors",
+            localField: "_id",
+            foreignField: "_id",
+            as: "author_details",
+            },
+          },
+        ]).exec();
+        if(topAuthors.length){
+            res.json(topAuthors);
+        } else {
+            res.status(404).send("Could not load Bloggers");
+        }
+      } catch (error) {
+        console.error('Error fetching Bloggers:', error);
+        throw error;
+      }
 });
 
 exports.getNewBlogs = asyncHandler(async(req,res,next)=>{

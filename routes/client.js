@@ -14,6 +14,7 @@ router.get("/blogs", client_controller.blogsSerach);
 router.get('/featuredBlog', client_controller.getFeaturedBlog);
 router.get('/news', client_controller.getNews);
 router.get('/notifications', client_controller.getNotifications);
+router.get('/bloggers/:authorId', client_controller.getBlogsByAuthor);
 
 router.get('/authors/popularAuthors', client_controller.getAuthors);
 router.get('/blogs/newBlogs', client_controller.getNewBlogs);
