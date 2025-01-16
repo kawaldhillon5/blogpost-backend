@@ -17,15 +17,24 @@ exports.getAllBlogPosts = [
     }),
 ]
 
+exports.getAuthorDetails = asyncHandler(async(req, res, next)=>{
+    const authorDetails = await Author.findById(req.params.authorId).exec();
+    if(authorDetails){
+        res.status(200).send(authorDetails);
+    } else {
+        res.status(404).send("Author Not Found");
+    }
+});
+
 exports.getBlogsByAuthor = asyncHandler(async(req, res, next)=>{
-    const resp = await Blog.find({author: req.params.authorId, isPublished: true},'date_created title author votes').populate("author", "first_name last_name").exec();
+    const resp = await Author.findOne({_id:req.params.authorId}, {blogs:{$slice:[Number(req.query.skip),Number(req.query.limit)]}}).populate({path:'blogs',select:'title votes date_created'}).exec();
     if(resp){
+        console.log(resp);
         res.status(200).send(resp);
     } else {
         res.status(404).send("No Blogs Found");
     }
 });
-
 
 exports.getAuthors = asyncHandler(async(req, res, next)=>{
     
@@ -55,6 +64,9 @@ exports.getAuthors = asyncHandler(async(req, res, next)=>{
             },
         },
         {
+            $skip: Number(req.query.skip),
+        },
+        {
         $limit:
             5,
         },
@@ -68,7 +80,7 @@ exports.getAuthors = asyncHandler(async(req, res, next)=>{
             },
           },
         ]).exec();
-        if(topAuthors.length){
+        if(topAuthors){
             res.json(topAuthors);
         } else {
             res.status(404).send("Could not load Bloggers");
@@ -81,8 +93,8 @@ exports.getAuthors = asyncHandler(async(req, res, next)=>{
 
 exports.getNewBlogs = asyncHandler(async(req,res,next)=>{
     
-    const newBlogs = await Blog.find({isPublished:true},"title author votes").populate("author", "first_name last_name").sort({"_id": -1}).limit(5).exec();
-    if(newBlogs.length){
+    const newBlogs = await Blog.find({isPublished:true},"title author votes").populate("author", "first_name last_name").sort({"_id": -1}).skip(Number(req.query.skip)).limit(5).exec();
+    if(newBlogs){
         res.json(newBlogs);
     } else {
         res.status(404).send("Could not load Blogs");
@@ -92,8 +104,9 @@ exports.getNewBlogs = asyncHandler(async(req,res,next)=>{
 
 exports.getPopularBlogs = asyncHandler(async(req,res,next)=>{
     
-    const popularBlogs = await Blog.find({isPublished:true},"title author votes").populate("author", "first_name last_name").sort({"votes": -1}).limit(5).exec();
-    if(popularBlogs.length){
+    const popularBlogs = await Blog.find({isPublished:true},"title author votes").populate("author", "first_name last_name").sort({"votes": -1}).skip(Number(req.query.skip)).limit(5).exec();
+    console.log(popularBlogs);
+    if(popularBlogs){
         res.json(popularBlogs);
     } else {
         res.status(404).send("Could not load Blogs");

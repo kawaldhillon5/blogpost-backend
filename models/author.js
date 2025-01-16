@@ -4,6 +4,7 @@ const Schema = mongoose.Schema;
 const AuthorSchema = new Schema({
     first_name: {type: String},
     last_name:  {type: String},
+    about: {type: String},
     blogs: [{type: Schema.Types.ObjectId, ref: "Blog"}]
 });
 
