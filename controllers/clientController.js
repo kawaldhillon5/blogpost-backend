@@ -29,7 +29,6 @@ exports.getAuthorDetails = asyncHandler(async(req, res, next)=>{
 exports.getBlogsByAuthor = asyncHandler(async(req, res, next)=>{
     const resp = await Author.findOne({_id:req.params.authorId}, {blogs:{$slice:[Number(req.query.skip),Number(req.query.limit)]}}).populate({path:'blogs',select:'title votes date_created'}).exec();
     if(resp){
-        console.log(resp);
         res.status(200).send(resp);
     } else {
         res.status(404).send("No Blogs Found");
@@ -105,7 +104,6 @@ exports.getNewBlogs = asyncHandler(async(req,res,next)=>{
 exports.getPopularBlogs = asyncHandler(async(req,res,next)=>{
     
     const popularBlogs = await Blog.find({isPublished:true},"title author votes").populate("author", "first_name last_name").sort({"votes": -1}).skip(Number(req.query.skip)).limit(5).exec();
-    console.log(popularBlogs);
     if(popularBlogs){
         res.json(popularBlogs);
     } else {
@@ -265,16 +263,24 @@ exports.postComment = asyncHandler(async(req, res, next)=>{
 
 exports.blogsSerach = asyncHandler(async (req, res, next)=>{
     
-    const searchQuery = req.query.search || ""; // Get search query from request
+    const searchQuery = req.query.search || "";
     let query = {};
-
+    const regex = new RegExp(searchQuery, 'i');
     if (searchQuery) {
         query = {isPublished: true};
         query.$text = { $search: searchQuery };
     }
-    const blogs = await Blog.find(query, ["author","title","votes"]).populate('author',"first_name last_name").limit(10).exec();
-    res.json(blogs);
-
+    const [blogs, bloggers, reqs] = await Promise.all([
+         Blog.find(query, ["author","title","votes"]).populate('author',"first_name last_name").limit(10).exec(),
+         Author.find({
+            $or: [
+              { first_name: { $regex: regex } },
+              { last_name: { $regex: regex } }
+            ]
+        }, 'first_name last_name').exec(),
+         RequestBlog.find({title: { $regex: regex } },'title').exec()
+    ]);
+    res.json({blogs,bloggers,reqs});
 });
 
 exports.getFeaturedBlog = asyncHandler(async (req, res, next) => {
