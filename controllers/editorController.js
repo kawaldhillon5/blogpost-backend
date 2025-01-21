@@ -8,6 +8,7 @@ const { model } = require("mongoose");
 const EditorRequest = require("../models/editorRequest");
 const Log = require("../models/log");
 const PublishBlogRequest = require("../models/publishBlogRequest");
+const notification = require("../models/notification");
 
 exports.getMyBlogPosts = asyncHandler(async (req, res, next)=>{
     if(req.user) {
@@ -40,51 +41,125 @@ exports.getRequest = asyncHandler(async (req, res, next) => {
 });
 
 exports.saveBlog = asyncHandler(async (req, res, next) => {
-    const updates = {...req.body,isPublished: false, publishReqStatus:0}
-    const updatedBlog = await updateBlog(req.params.blogId, updates);
-    await PublishBlogRequest.findOneAndDelete({blog: req.params.blogId}).exec();
-    res.send({id: updatedBlog._id});
-});
-
-exports.finishEditingBlog = asyncHandler(async (req, res, next) => {
-    const updates = {...req.body, isPublished: false, publishReqStatus:1}
-    const updatedBlog = await updateBlog(req.params.blogId, updates);
-    const request = await PublishBlogRequest.findOne({blog: req.params.blogId}).exec();
-    if(!request){
-        const publishReq = new PublishBlogRequest({
-            blog: updatedBlog._id,
-            user: req.user._id,
-            title: updatedBlog.title
-        });
-        await publishReq.save();
+    if(req.params.blogId === '0'){
+        if(req.params.mode === 'finish'){
+            const updates = {...req.body,isPublished: false, publishReqStatus:1}
+            const newBlog = await createNewBlog(req, updates);
+            const publishReq = new PublishBlogRequest({
+                blog: newBlog._id,
+                user: req.user._id,
+                title: newBlog.title
+            });
+            const noti = new notification({
+                text: `Your Request to Publish blog '${newBlog.title}' has been submitied`,
+                dateCreated: new Date(),  
+            });
+            await noti.save();
+            await User.findByIdAndUpdate(req.user._id,{$push:{"notifications": noti}});
+            await publishReq.save();
+            if(newBlog){
+                res.status(200).send({id: newBlog._id});
+            } else {
+                res.status(200).send("Could Not Create Blog");
+            }
+        } else {
+            const updates = {...req.body,isPublished: false, publishReqStatus:0}
+            const newBlog = await createNewBlog(req, updates);
+            if(newBlog){
+                res.status(200).send({id: newBlog._id});
+            } else {
+                res.status(200).send("Could Not Create Blog");
+            }
+        }
+    } else {
+        await PublishBlogRequest.findOneAndDelete({blog: req.params.blogId}).exec();
+        if(req.params.mode === 'finish'){
+            const updates = {...req.body,isPublished: false, publishReqStatus:1}
+            const updatedBlog = await updateBlog(req.params.blogId, updates, req);
+            const publishReq = new PublishBlogRequest({
+                blog: updatedBlog._id,
+                user: req.user._id,
+                title: updatedBlog.title
+            });
+            const noti = new notification({
+                text: `Your Request to Publish blog '${updatedBlog.title}' has been submitied`,
+                dateCreated: new Date(),  
+            });
+            await noti.save();
+            await User.findByIdAndUpdate(req.user._id,{$push:{"notifications": noti}});
+            await publishReq.save();
+            if(updatedBlog){
+                res.status(200).send({id: updatedBlog._id});
+            } else {
+                res.status(200).send("Could Not Update Blog");
+            }
+        } else {
+            const updates = {...req.body,isPublished: false, publishReqStatus:0}
+            const updatedBlog = await updateBlog(req.params.blogId, updates, req);
+            if(updatedBlog){
+                res.status(200).send({id: updatedBlog._id});
+            } else {
+                res.status(200).send("Could Not Update Blog");
+            }
+        }    
     }
-    res.send({id: updatedBlog._id});
 });
 
+async function updateBlog(blogId, body, req) {
+    const user = req.user;
+    if(!user.isEditor){
+        const err = new Error("User is Not an Editor");
+        err.status = 404;
+        return next(err);
+    }
 
-exports.createNewEmptyBlog = asyncHandler(async (req, res, next) => {
+    const blog = await Blog.findOne({_id:blogId}).exec();
+
+    if (blog === null) {
+        const err = new Error("Blog not found");
+        err.status = 401;
+        return next(err);
+    }
+
+    const newBlog = new Blog({
+        _id: blogId,
+        title: body.title,
+        body: body.body,
+        date_created: blog.date_created,
+        author: blog.author,
+        tags: body.tags,
+        isPublished: body.isPublished,
+        publishReqStatus: body.publishReqStatus,
+    });
+    const updatedBlog = await Blog.findByIdAndUpdate(blogId, newBlog);
+    return updatedBlog ? updatedBlog : false;
+}
+
+async function createNewBlog (req, body) {
     const user = req.user;
     
     if(!user.isEditor){
-       return  res.status(404).end("User is not an Editor");
+        const err = new Error("User is Not an Editor");
+        err.status = 401;
+        return next(err);
     }
     const author = await Author.findById(user.authorDetails._id.toString()).exec();
     const blog = new Blog({
         date_created: new Date(),
-        title: "",
-        body: "",
-        tags: [],
+        title: body.title,
+        body: body.body,
+        tags: body.tags,
         author: author,
         isPublished: false,
-        publishReqStatus: 0,
+        publishReqStatus: body.publishReqStatus,
         votes: 0,
         comments: [],
     });
     author.blogs.push(blog);
     await author.save(); 
     const newBlog = await blog.save();
-    return res.send({id: newBlog._id});
-});
+    return newBlog ? newBlog : false;
+};
 
 exports.getEditorReqs = asyncHandler(async (req, res, next) => {
     const reqs = await EditorRequest.find().exec();
@@ -133,28 +208,7 @@ exports.postPublishBlogReq = asyncHandler(async (req, res, next)=>{
     res.status(200).send("ok");
 });
 
-async function updateBlog(blogId, body) {
-    const blog = await Blog.findOne({_id:blogId}).exec();
-    if (blog === null) {
-        // No results.
-        const err = new Error("Blog not found");
-        err.status = 404;
-        return next(err);
-    }
 
-    const newBlog = new Blog({
-        _id: blogId,
-        title: body.title,
-        body: body.body,
-        date_created: blog.date_created,
-        author: blog.author,
-        tags: body.tags,
-        isPublished: body.isPublished,
-        publishReqStatus: body.publishReqStatus,
-    });
-    const updatedBlog = await Blog.findByIdAndUpdate(blogId, newBlog);
-    return updatedBlog;
-}
 
 exports.postDeleteBlogReq = asyncHandler(async (req, res, next)=>{
     try {

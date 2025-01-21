@@ -114,7 +114,12 @@ exports.getPopularBlogs = asyncHandler(async(req,res,next)=>{
 
 exports.getBlog = asyncHandler(async (req, res, next) => {
     const blog = await Blog.findOne({_id:req.params.blogId}).populate("author","first_name last_name").exec();
-    res.send({post: blog});
+    if(!blog){
+        return res.status(404).send("Blog not found");
+    } else {
+
+        blog.isPublished ? res.send(blog) : res.status(404).send("Blog not Published Yet");
+    }
 });
 
 exports.getAllRequests = asyncHandler(async (req, res, next)=>{
@@ -196,13 +201,15 @@ exports.postVote = asyncHandler(async (req, res, next)=>{
         if(req.params.type == 'blog'){
             if(!didUserAlreadyVoted){
                 await User.updateOne({_id: req.user._id},{$push :{votedBlogs: req.params.Id}}).exec();
-                const updatedBlog = await Blog.updateOne({_id: req.params.Id},{$inc: {votes: 1}});
+                const updatedBlog = await Blog.findByIdAndUpdate({_id: req.params.Id},{$inc: {votes: 1}});
                 if(updatedBlog){
+                    const author = await User.findOne({authorDetails: updatedBlog.author._id.toString()},'_id').exec();
+                    await postNewNoti(author._id,`${req.user.userName} has voted for your Blog: '${updatedBlog.title}'`);
                     return res.status(200).end();
                 } return res.status(404).end(); 
             } else{
                 await User.updateOne({_id: req.user._id},{$pull :{votedBlogs: req.params.Id}}).exec();
-                const updatedBlog = await Blog.updateOne({_id: req.params.Id},{$inc: {votes: -1}});
+                const updatedBlog = await Blog.findByIdAndUpdate({_id: req.params.Id},{$inc: {votes: -1}});
                 if(updatedBlog){
                     return res.status(200).end();
                 } return res.status(404).end(); 
@@ -210,13 +217,15 @@ exports.postVote = asyncHandler(async (req, res, next)=>{
         } else {
             if(!didUserAlreadyVoted){
                 await User.updateOne({_id: req.user._id},{$push :{votedReqs: req.params.Id}}).exec();
-                const updatedReq = await BlogRequest.updateOne({_id: req.params.Id},{$inc: {votes: 1}});
+                const updatedReq = await BlogRequest.findByIdAndUpdate({_id: req.params.Id},{$inc: {votes: 1}});
                 if(updatedReq){
+                    const author = await User.findOne({_id: updatedReq.user._id.toString()},'_id').exec();
+                    await postNewNoti(author._id,`${req.user.userName} has voted for your Blog Request: '${updatedReq.title}'`);
                     return res.status(200).end();
                 } return res.status(404).end(); 
             } else{
                 await User.updateOne({_id: req.user._id},{$pull :{votedReqs: req.params.Id}}).exec();
-                const updatedReq = await BlogRequest.updateOne({_id: req.params.Id},{$inc: {votes: -1}});
+                const updatedReq = await BlogRequest.findByIdAndUpdate({_id: req.params.Id},{$inc: {votes: -1}});
                 if(updatedReq){
                     return res.status(200).end();
                 } return res.status(404).end(); 
@@ -228,6 +237,15 @@ exports.postVote = asyncHandler(async (req, res, next)=>{
     }
     return ;
 });
+
+async function postNewNoti(userId, text){
+    const newNoti = new notification({
+        text: text,
+        dateCreated: new Date(),
+    });
+    await newNoti.save();
+    await User.findByIdAndUpdate(userId,{$push:{"notifications": newNoti}});
+}
 
 exports.getComments = asyncHandler(async(req, res, next)=>{
     let comments = [];
@@ -253,6 +271,8 @@ exports.postComment = asyncHandler(async(req, res, next)=>{
     const savedComment = await newComment.save();
     const updatedBlog = await Blog.findByIdAndUpdate(req.params.blogId,{$push:{comments: savedComment}}).exec();
     const updatedUser = await User.findByIdAndUpdate(req.user._id,{$push:{allComments: savedComment}}).exec();
+    const author = await User.findOne({authorDetails: updatedBlog.author._id.toString()},'_id').exec();
+    await postNewNoti(author._id,`${req.user.userName} commented: '${savedComment.text}' on '${updatedBlog.title}' blog`);
     if(updatedBlog && updatedUser){
         res.status(200).end();
     } else {
@@ -285,7 +305,7 @@ exports.blogsSerach = asyncHandler(async (req, res, next)=>{
 
 exports.getFeaturedBlog = asyncHandler(async (req, res, next) => {
     try {
-        const blog = await Blog.findOne({_id:'670ca10144ea73738208abb1'}).populate("author","first_name last_name").exec();
+        const blog = await Blog.findOne({_id:'670ca10144ea73738208abb1', isPublished:true}).populate("author","first_name last_name").exec();
         if(blog) {
             return res.status(200).send({post: blog});
         } else {
@@ -345,7 +365,6 @@ exports.postEditorReq = asyncHandler(async (req, res, next)=>{
                 let first_name = ""; 
                 let last_name = req.user.userName;
                 const authorDetails = await author.findById(req.user.authorDetails.toString(),'first_name last_name').exec();
-                console.log(authorDetails);
                 if(authorDetails){
                     first_name = authorDetails.first_name;
                     last_name = authorDetails.last_name;
@@ -358,7 +377,7 @@ exports.postEditorReq = asyncHandler(async (req, res, next)=>{
                 user: req.user.id
             });
             const newNoti = new notification({
-                text:"Your Request to Become an Editor has been Recieved",
+                text:"Your Request to Become a Blogger has been Recieved",
                 dateCreated: new Date(),
             });
             await newNoti.save();
