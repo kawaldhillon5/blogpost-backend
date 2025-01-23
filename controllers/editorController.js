@@ -179,12 +179,23 @@ exports.postEditorReqChoice = asyncHandler(async (req, res, next) => {
         dateCreated: new Date(),
     });
     if(req.body.data.choice){
+        await postNewNoti(request.user._id, "Your Request to become an blogger has been accepted");
         await User.updateOne({_id: request.user.toString()}, {isEditor: true});
     }
     await log.save();
+    await postNewNoti(request.user, `Your Request to become an blogger has been ${req.body.data.choice ? "accepted": "rejected"}`);
     await EditorRequest.deleteOne({_id: req.params.id});
     res.status(200).send("ok");
 });
+
+async function postNewNoti(userId, text){
+    const newNoti = new notification({
+        text: text,
+        dateCreated: new Date(),
+    });
+    await newNoti.save();
+    await User.findByIdAndUpdate(userId,{$push:{"notifications": newNoti}});
+}
 
 exports.getPublishBlogRequests = asyncHandler(async (req, res, next)=>{
     const reqs = await PublishBlogRequest.find().populate("user").exec();
@@ -204,6 +215,7 @@ exports.postPublishBlogReq = asyncHandler(async (req, res, next)=>{
         await Blog.updateOne({_id: request.blog.toString()},{publishReqStatus:3});
     }
     await log.save();
+    await postNewNoti(request.user._id.toString(), `Your Request to Publish blog '${request.title}' has been ${req.body.data.choice ? "accepted": "rejected"}`);
     await PublishBlogRequest.deleteOne({_id: req.params.reqId});
     res.status(200).send("ok");
 });
