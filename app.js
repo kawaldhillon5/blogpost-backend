@@ -3,6 +3,7 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+require('dotenv').config();
 const mongoose = require("mongoose");
 const clientRouter = require("./routes/client");
 var indexRouter = require('./routes/index');
@@ -14,28 +15,29 @@ const MongoStore = require('connect-mongo');
 const cors = require("cors");
 var app = express();
 
-
+const databaseUrl = process.env.DATABASE_URL;
+const frontEndUrl = process.env.FRONTEND_URL; 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
-app.use(cors({credentials: true, origin: "http://localhost:5173"}));
+app.use(cors({credentials: true, origin: frontEndUrl}));
 
 mongoose.set("strictQuery", false);
-const mongoDB = "mongodb+srv://dhillonzeus:6357Jv7t3TPHTyor@cluster0.dvd8zsi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
+const mongoDB = databaseUrl
 
 main().catch((err) => console.log(err));
 async function main() {
   await mongoose.connect(mongoDB);
 }
 
-app.use(session({ 
-  secret: "cats", 
+app.use(session({
+  secret: "cats",
   resave: false, 
   saveUninitialized: false,
-  store: MongoStore.create(
-    {mongoUrl:mongoDB}
-    ),
+  store: MongoStore.create({
+    mongoUrl:mongoDB,
+    
+  }),
   cookie: { maxAge: 1000 * 60 * 60 * 24},
 }));
 

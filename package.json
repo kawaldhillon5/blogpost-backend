@@ -5,18 +5,23 @@
   "scripts": {
     "start": "node ./bin/www",
     "dev": "nodemon ./bin/www",
-    "serverstart": "DEBUG=express-locallibrary-tutorial:* npm run devstart"
+    "serverstart": "DEBUG=blogpost-backend:* npm run devstart"
+  },
+  "engines": {
+    "node": ">=20.17.0"
   },
   "dependencies": {
     "async-handler": "^0.0.3",
-    "connect-mongo": "^5.1.0",
+    "connect-mongo": "^4.6.0",
     "cookie-parser": "~1.4.4",
     "cookie-session": "^2.1.0",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "debug": "~2.6.9",
+    "dotenv": "^16.4.7",
     "express": "~4.16.1",
     "express-async-handler": "^1.2.0",
+    "express-rate-limit": "^7.5.0",
     "express-session": "^1.18.0",
     "express-validator": "^7.2.0",
     "http-errors": "~1.6.3",
