@@ -30,6 +30,8 @@ async function main() {
   await mongoose.connect(mongoDB);
 }
 
+app.set("trust proxy", 1);
+
 app.use(session({
   secret: "cats",
   resave: false, 
