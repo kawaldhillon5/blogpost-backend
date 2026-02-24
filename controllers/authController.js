@@ -104,21 +104,21 @@ exports.signUp = asyncHandler( async(req, res, next)=>{
         return res.status(200).end( "ok");
 })
 
- exports.LogIn = asyncHandler(async (req, res, next) => {
-    passport.authenticate("local", function (error, user, info) {
-        if(error){
-            return next(error);
-        } if(!user) {
-            return res.status(401).end('Wrong username or passowrd');
-        }
-        req.logIn(user, function(err) {
-            if (err) { return next(err); }
-            return res.status(200).send({message: 'user Loged in' , userId: user._id}); //That, or hand them a session id or a JWT Token
-          });
-    })(req, res, next);
- });
+exports.LogIn = asyncHandler(async (req, res, next) => {
+  passport.authenticate("local", function (error, user, info) {
+      if(error){
+          return next(error);
+      } if(!user) {
+          return res.status(401).end('Wrong username or passowrd');
+      }
+      req.logIn(user, function(err) {
+          if (err) { return next(err); }
+          return res.status(200).send({message: 'user Loged in' , userId: user._id}); 
+        });
+  })(req, res, next);
+});
 
- exports.User = asyncHandler( async (req, res, next) => {
+exports.User = asyncHandler( async (req, res, next) => {
   if(req.isAuthenticated()){
     res.send({user: req.user._id, username: req.user.userName, isAdmin: req.user.isAdmin, status: 200, isEditor: req.user.isEditor});
   } else {
